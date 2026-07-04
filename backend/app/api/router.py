@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api import properties, leases, payments, maintenance, screening, accounting, vendors, intelligence
+from app.api import properties, leases, payments, maintenance, screening, accounting, vendors, intelligence, tenants
 
 api_router = APIRouter()
 
@@ -11,3 +11,4 @@ api_router.include_router(screening.router, prefix="/screening", tags=["screenin
 api_router.include_router(accounting.router, prefix="/accounting", tags=["accounting"])
 api_router.include_router(vendors.router, prefix="/vendors", tags=["vendors"])
 api_router.include_router(intelligence.router, prefix="/intelligence", tags=["intelligence"])
+api_router.include_router(tenants.router, prefix="/tenants", tags=["tenants"])

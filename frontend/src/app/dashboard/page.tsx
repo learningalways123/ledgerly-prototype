@@ -59,36 +59,46 @@ export default function LandlordDashboard() {
   const [unitRent, setUnitRent] = useState(1500);
 
   const [showLeaseModal, setShowLeaseModal] = useState(false);
+  const [editingLeaseId, setEditingLeaseId] = useState<string | null>(null);
   const [leaseUnitId, setLeaseUnitId] = useState("");
   const [leaseRent, setLeaseRent] = useState(1500);
   const [leaseDeposit, setLeaseDeposit] = useState(1500);
   const [leaseStart, setLeaseStart] = useState("");
   const [leaseEnd, setLeaseEnd] = useState("");
   const [leaseLength, setLeaseLength] = useState("12");
-  const [tenantName, setTenantName] = useState("");
+  const [selectedTenantId, setSelectedTenantId] = useState("");
+
+  const [showTenantModal, setShowTenantModal] = useState(false);
+  const [tenantFirstName, setTenantFirstName] = useState("");
+  const [tenantLastName, setTenantLastName] = useState("");
   const [tenantEmail, setTenantEmail] = useState("");
+  const [tenantPhone, setTenantPhone] = useState("");
+
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
   const [commentText, setCommentText] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [tenants, setTenants] = useState<any[]>([]);
 
   // Load dashboard data
   const loadData = async () => {
     try {
       setLoading(true);
       setError("");
-      const [propsData, leasesData, paymentsData, maintenanceData] = await Promise.all([
+      const [propsData, leasesData, paymentsData, maintenanceData, tenantsData] = await Promise.all([
         api.getProperties(),
         api.getLeases(),
         api.getPayments(),
-        api.getMaintenanceRequests()
+        api.getMaintenanceRequests(),
+        api.getTenants()
       ]);
       setProperties(propsData);
       setLeases(leasesData);
       setPayments(paymentsData);
       setMaintenance(maintenanceData);
+      setTenants(tenantsData);
       if (propsData.length > 0) {
         setSelectedPropertyId(propsData[0].id);
       }
@@ -185,35 +195,61 @@ export default function LandlordDashboard() {
     }
   };
 
+  const handleCreateTenant = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setError("");
+      await api.createTenant({
+        first_name: tenantFirstName,
+        last_name: tenantLastName,
+        email: tenantEmail,
+        phone: tenantPhone
+      });
+      setShowTenantModal(false);
+      setTenantFirstName("");
+      setTenantLastName("");
+      setTenantEmail("");
+      setTenantPhone("");
+      loadData();
+    } catch (err: any) {
+      setError(err.message || "Failed to create tenant");
+    }
+  };
+
   const handleCreateLease = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setError("");
-      // Create Tenant Profile first (mock mapping)
-      // For testing, our API automatically links profiles in leases, but we must provide a tenant ID or name.
-      // So here, we pass a placeholder tenant profile setup
-      const lease = await api.createLease({
+      const leaseData = {
         unit_id: leaseUnitId,
         start_date: leaseStart,
         end_date: leaseEnd,
         rent_amount_cents: leaseRent * 100,
         deposit_amount_cents: leaseDeposit * 100,
         late_fee_type: "flat",
-        late_fee_value_cents: 5000, // $50.00
+        late_fee_value_cents: 5000,
         grace_period_days: 5,
-        tenant_ids: tenantEmail ? [tenantEmail] : [],
+        tenant_ids: selectedTenantId ? [selectedTenantId] : [],
         status: "draft"
-      });
-      setLeases([...leases, lease]);
+      };
+
+      if (editingLeaseId) {
+        await api.updateLease(editingLeaseId, leaseData);
+      } else {
+        await api.createLease(leaseData);
+      }
+
       setShowLeaseModal(false);
+      setEditingLeaseId(null);
       setLeaseUnitId("");
       setLeaseRent(1500);
       setLeaseDeposit(1500);
       setLeaseStart("");
       setLeaseEnd("");
-      loadData(); // Reload to fetch details
+      setSelectedTenantId("");
+      loadData();
     } catch (err: any) {
-      setError(err.message || "Failed to create lease");
+      setError(err.message || "Failed to save lease");
     }
   };
 
@@ -458,6 +494,19 @@ export default function LandlordDashboard() {
                                     await api.updateUnit(u.id, { status: nextStatus });
                                     setUnits(units.map(unit => unit.id === u.id ? { ...unit, status: nextStatus } : unit));
                                     alert(`Unit status updated to ${nextStatus}`);
+
+                                    if (nextStatus === "occupied") {
+                                      setLeaseUnitId(u.id);
+                                      setLeaseRent(u.market_rent_cents / 100);
+                                      setLeaseDeposit(u.market_rent_cents / 100);
+                                      const today = new Date();
+                                      const year = today.getFullYear();
+                                      const month = String(today.getMonth() + 1).padStart(2, "0");
+                                      const day = String(today.getDate()).padStart(2, "0");
+                                      setLeaseStart(`${year}-${month}-${day}`);
+                                      setShowLeaseModal(true);
+                                      setEditingLeaseId(null);
+                                    }
                                   } catch (err: any) {
                                     alert("Failed to update unit status: " + err.message);
                                   }
@@ -486,6 +535,35 @@ export default function LandlordDashboard() {
             {/* Right Col: Maintenance & Leases */}
             <div className="space-y-8">
               
+              {/* Tenant Roster */}
+              <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold text-white">Tenant Roster</h3>
+                  <button
+                    onClick={() => setShowTenantModal(true)}
+                    className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all"
+                  >
+                    <Plus size={14} />
+                    Onboard Tenant
+                  </button>
+                </div>
+                
+                {tenants.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 text-sm">
+                    No tenants onboarded yet.
+                  </div>
+                ) : (
+                  <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    {tenants.map((t: any) => (
+                      <div key={t.id} className="bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 flex-shrink-0 min-w-[120px]">
+                        <p className="text-white text-sm font-semibold truncate">{t.first_name} {t.last_name}</p>
+                        <p className="text-slate-400 text-[10px] truncate">{t.email}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Maintenance Inbox */}
               <div className="bg-slate-900/40 border border-slate-850 rounded-2xl p-6">
                 <h3 className="text-lg font-bold text-white mb-6">Maintenance Requests</h3>
@@ -586,27 +664,45 @@ export default function LandlordDashboard() {
                           </div>
 
                           {l.status === "active" && (
-                            <button
-                              onClick={() => {
-                                setLeaseUnitId(l.unit_id);
-                                setTenantName(l.tenants && l.tenants.length > 0 ? `${l.tenants[0].first_name} ${l.tenants[0].last_name}` : "");
-                                setTenantEmail(l.tenants && l.tenants.length > 0 ? l.tenants[0].email : "");
-                                setLeaseRent(l.rent_amount_cents / 100);
-                                setLeaseDeposit(l.deposit_amount_cents / 100);
-                                
-                                const nextDay = new Date(l.end_date + "T00:00:00");
-                                nextDay.setDate(nextDay.getDate() + 1);
-                                const year = nextDay.getFullYear();
-                                const month = String(nextDay.getMonth() + 1).padStart(2, "0");
-                                const day = String(nextDay.getDate()).padStart(2, "0");
-                                setLeaseStart(`${year}-${month}-${day}`);
-                                
-                                setShowLeaseModal(true);
-                              }}
-                              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer shadow-md"
-                            >
-                              Renew Lease
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingLeaseId(l.id);
+                                  setLeaseUnitId(l.unit_id);
+                                  setSelectedTenantId(l.tenants && l.tenants.length > 0 ? l.tenants[0].id : "");
+                                  setLeaseRent(l.rent_amount_cents / 100);
+                                  setLeaseDeposit(l.deposit_amount_cents / 100);
+                                  setLeaseStart(l.start_date);
+                                  setLeaseEnd(l.end_date);
+                                  setLeaseLength("custom");
+                                  setShowLeaseModal(true);
+                                }}
+                                className="bg-slate-700 hover:bg-slate-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer shadow-md"
+                              >
+                                Edit Lease
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setEditingLeaseId(null);
+                                  setLeaseUnitId(l.unit_id);
+                                  setSelectedTenantId(l.tenants && l.tenants.length > 0 ? l.tenants[0].id : "");
+                                  setLeaseRent(l.rent_amount_cents / 100);
+                                  setLeaseDeposit(l.deposit_amount_cents / 100);
+                                  
+                                  const nextDay = new Date(l.end_date + "T00:00:00");
+                                  nextDay.setDate(nextDay.getDate() + 1);
+                                  const year = nextDay.getFullYear();
+                                  const month = String(nextDay.getMonth() + 1).padStart(2, "0");
+                                  const day = String(nextDay.getDate()).padStart(2, "0");
+                                  setLeaseStart(`${year}-${month}-${day}`);
+                                  
+                                  setShowLeaseModal(true);
+                                }}
+                                className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer shadow-md"
+                              >
+                                Renew Lease
+                              </button>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -794,7 +890,7 @@ export default function LandlordDashboard() {
       {showLeaseModal && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <form onSubmit={handleCreateLease} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl">
-            <h3 className="text-xl font-bold text-white">Create Lease</h3>
+            <h3 className="text-xl font-bold text-white">{editingLeaseId ? "Edit Lease" : "Create Lease"}</h3>
             <div className="space-y-3">
               <div>
                 <label className="text-xs text-slate-400 font-medium">Select Unit</label>
@@ -882,26 +978,23 @@ export default function LandlordDashboard() {
                 </div>
               </div>
               <div>
-                <label className="text-xs text-slate-400 font-medium">Tenant Name</label>
-                <input 
-                  type="text" 
-                  value={tenantName} 
-                  onChange={e => setTenantName(e.target.value)}
-                  placeholder="Alice Smith" 
+                <label className="text-xs text-slate-400 font-medium">Select Tenant</label>
+                <select
+                  value={selectedTenantId}
+                  onChange={e => setSelectedTenantId(e.target.value)}
                   required
                   className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-slate-400 font-medium">Tenant Email</label>
-                <input 
-                  type="email" 
-                  value={tenantEmail} 
-                  onChange={e => setTenantEmail(e.target.value)}
-                  placeholder="alice@example.com" 
-                  required
-                  className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
-                />
+                >
+                  <option value="">Choose tenant...</option>
+                  {tenants.map((t: any) => (
+                    <option key={t.id} value={t.id}>
+                      {t.first_name} {t.last_name} ({t.email})
+                    </option>
+                  ))}
+                </select>
+                {tenants.length === 0 && (
+                  <p className="text-xs text-rose-400 mt-1">No tenants available. Please onboard a tenant first.</p>
+                )}
               </div>
             </div>
             <div className="flex gap-2 justify-end pt-4">
@@ -1094,6 +1187,77 @@ export default function LandlordDashboard() {
 
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Tenant Modal */}
+      {showTenantModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <form onSubmit={handleCreateTenant} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl">
+            <h3 className="text-xl font-bold text-white">Onboard Tenant</h3>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-slate-400 font-medium">First Name</label>
+                  <input 
+                    type="text" 
+                    value={tenantFirstName} 
+                    onChange={e => setTenantFirstName(e.target.value)}
+                    placeholder="Alice" 
+                    required
+                    className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 font-medium">Last Name</label>
+                  <input 
+                    type="text" 
+                    value={tenantLastName} 
+                    onChange={e => setTenantLastName(e.target.value)}
+                    placeholder="Smith" 
+                    required
+                    className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 font-medium">Email</label>
+                <input 
+                  type="email" 
+                  value={tenantEmail} 
+                  onChange={e => setTenantEmail(e.target.value)}
+                  placeholder="alice@example.com" 
+                  required
+                  className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 font-medium">Phone (Optional)</label>
+                <input 
+                  type="tel" 
+                  value={tenantPhone} 
+                  onChange={e => setTenantPhone(e.target.value)}
+                  placeholder="(555) 123-4567" 
+                  className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
+              <button 
+                type="button" 
+                onClick={() => setShowTenantModal(false)}
+                className="bg-slate-950 border border-slate-800 text-slate-400 font-medium px-4 py-2 rounded-xl text-sm hover:bg-slate-900 cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-xl text-sm hover:bg-indigo-500 cursor-pointer shadow-lg shadow-indigo-500/20"
+              >
+                Onboard
+              </button>
+            </div>
+          </form>
         </div>
       )}
 

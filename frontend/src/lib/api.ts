@@ -58,11 +58,18 @@ export const api = {
   updateUnit: (id: string, data: Partial<{ unit_number: string; bed_count: number; bath_count: number; square_feet?: number; market_rent_cents: number; status: string }>) => 
     request(`/properties/units/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
 
+  // Tenants
+  getTenants: () => request("/tenants/"),
+  createTenant: (data: { first_name: string; last_name: string; email: string; phone?: string }) => 
+    request("/tenants/", { method: "POST", body: JSON.stringify(data) }),
+
   // Leases
   getLeases: () => request("/leases/"),
   getLease: (id: string) => request(`/leases/${id}`),
   createLease: (data: { unit_id: string; start_date: string; end_date: string; rent_amount_cents: number; deposit_amount_cents: number; late_fee_type?: string; late_fee_value_cents?: number; grace_period_days?: number; tenant_ids: string[]; status?: string }) => 
     request("/leases/", { method: "POST", body: JSON.stringify(data) }),
+  updateLease: (id: string, data: Partial<{ unit_id: string; start_date: string; end_date: string; rent_amount_cents: number; deposit_amount_cents: number; late_fee_type: string; late_fee_value_cents: number; grace_period_days: number; tenant_ids: string[]; status: string }>) => 
+    request(`/leases/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
 
   // Payments
   getPayments: () => request("/payments/"),

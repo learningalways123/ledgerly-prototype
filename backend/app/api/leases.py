@@ -114,8 +114,23 @@ def update_lease(
     update_data = lease_in.model_dump(exclude_unset=True)
     tenant_ids = update_data.pop("tenant_ids", None)
     
+    original_end_date = db_lease.end_date
+    original_status = db_lease.status
+
     for key, value in update_data.items():
         setattr(db_lease, key, value)
+
+    needs_signature = False
+    if "end_date" in update_data and update_data["end_date"] > original_end_date:
+        needs_signature = True
+    elif original_status in ["expired", "terminated"] and "status" not in update_data:
+        needs_signature = True
+
+    if needs_signature:
+        db_lease.status = "draft"
+        db_lease.tenant_consent_signed = False
+        db_lease.tenant_signature_name = None
+        db_lease.tenant_signed_at = None
 
     if tenant_ids is not None:
         tenants = []

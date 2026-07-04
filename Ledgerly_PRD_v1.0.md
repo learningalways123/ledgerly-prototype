@@ -189,8 +189,9 @@ Goal: a landlord can run real rent collection and maintenance tracking on the pl
 - FCRA-compliant consent capture and automated adverse-action notice generation on denial
 - Applicant scoring/decision workflow (approve / conditional / deny) against configurable screening criteria
 - Lease template library with e-signature generation from approved application
-- **Lease Renewals & Tenant E-signatures**: Landlord capability to review active leases and click "Renew Lease" to pre-populate and dispatch lease offers to seeded tenants for digital execution.
-- **Dynamic Unit Status Updates**: Interactive controls allowing landlords to manually override unit statuses ('vacant', 'occupied', 'maintenance') or trigger them dynamically upon lease execution.
+- **Lease Renewals & Updates**: Landlord capability to review active leases, edit existing lease terms, and renew expiring leases. Updating terms (like end dates) automatically triggers a re-dispatch of the document to the tenant for digital re-execution.
+- **Tenant Onboarding & Selection**: A formal onboarding flow allowing landlords to create tenant profiles directly, and select from these onboarded tenants when drafting or editing leases.
+- **Dynamic Unit Status & Occupancy**: Interactive controls allowing landlords to manually override unit statuses ('vacant', 'occupied', 'maintenance'). Manually marking a unit as 'occupied' requires linking an onboarded tenant via a lease agreement.
 
 ### Phase 3 — Accounting Depth, Compliance & Mobile
 
