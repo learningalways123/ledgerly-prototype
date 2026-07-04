@@ -201,7 +201,8 @@ export default function LandlordDashboard() {
         late_fee_type: "flat",
         late_fee_value_cents: 5000, // $50.00
         grace_period_days: 5,
-        tenant_ids: [] // Let API handle creation/linking
+        tenant_ids: tenantEmail ? [tenantEmail] : [],
+        status: "draft"
       });
       setLeases([...leases, lease]);
       setShowLeaseModal(false);
@@ -449,13 +450,24 @@ export default function LandlordDashboard() {
                           <div>
                             <div className="flex items-center justify-between">
                               <h4 className="font-bold text-white text-sm">Unit {u.unit_number}</h4>
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
-                                u.status === "occupied" 
-                                  ? "bg-indigo-950 text-indigo-400 border border-indigo-900/30" 
-                                  : "bg-emerald-950 text-emerald-400 border border-emerald-900/30"
-                              }`}>
-                                {u.status}
-                              </span>
+                              <select
+                                value={u.status}
+                                onChange={async (e) => {
+                                  try {
+                                    const nextStatus = e.target.value;
+                                    await api.updateUnit(u.id, { status: nextStatus });
+                                    setUnits(units.map(unit => unit.id === u.id ? { ...unit, status: nextStatus } : unit));
+                                    alert(`Unit status updated to ${nextStatus}`);
+                                  } catch (err: any) {
+                                    alert("Failed to update unit status: " + err.message);
+                                  }
+                                }}
+                                className="bg-slate-955 border border-slate-855 rounded px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-300 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                              >
+                                <option value="vacant">Vacant</option>
+                                <option value="occupied">Occupied</option>
+                                <option value="maintenance">Maintenance</option>
+                              </select>
                             </div>
                             <p className="text-slate-400 text-xs mt-1">{u.bed_count} Bed / {u.bath_count} Bath</p>
                           </div>
@@ -542,14 +554,60 @@ export default function LandlordDashboard() {
                 ) : (
                   <div className="space-y-4">
                     {leases.map(l => (
-                      <div key={l.id} className="bg-slate-900 border border-slate-850 p-4 rounded-xl">
+                      <div key={l.id} className="bg-slate-900 border border-slate-855 p-4 rounded-xl space-y-4">
                         <div className="flex justify-between items-start">
                           <div>
-                            <h4 className="font-semibold text-white text-sm">Active Agreement</h4>
+                            <h4 className="font-semibold text-white text-sm">Lease Agreement</h4>
                             <p className="text-slate-400 text-xs mt-1">Start: {l.start_date}</p>
                             <p className="text-slate-400 text-xs">End: {l.end_date}</p>
                           </div>
-                          <span className="font-bold text-white text-sm">${(l.rent_amount_cents / 100).toLocaleString()}/mo</span>
+                          <div className="text-right">
+                            <span className="font-bold text-white text-sm block">${(l.rent_amount_cents / 100).toLocaleString()}/mo</span>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider mt-1.5 inline-block ${
+                              l.status === "active" 
+                                ? "bg-emerald-950 text-emerald-400 border border-emerald-900/30" 
+                                : l.status === "draft"
+                                ? "bg-indigo-950 text-indigo-400 border border-indigo-900/30"
+                                : "bg-slate-950 text-slate-400 border border-slate-850"
+                            }`}>
+                              {l.status}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="border-t border-slate-850 pt-3 flex items-center justify-between gap-4">
+                          <div className="text-xs text-slate-400">
+                            <span className="text-[10px] text-slate-500 font-bold uppercase block">Tenant</span>
+                            {l.tenants && l.tenants.length > 0 ? (
+                              <span>{l.tenants[0].first_name} {l.tenants[0].last_name}</span>
+                            ) : (
+                              <span className="italic text-slate-500">Unassigned / Draft</span>
+                            )}
+                          </div>
+
+                          {l.status === "active" && (
+                            <button
+                              onClick={() => {
+                                setLeaseUnitId(l.unit_id);
+                                setTenantName(l.tenants && l.tenants.length > 0 ? `${l.tenants[0].first_name} ${l.tenants[0].last_name}` : "");
+                                setTenantEmail(l.tenants && l.tenants.length > 0 ? l.tenants[0].email : "");
+                                setLeaseRent(l.rent_amount_cents / 100);
+                                setLeaseDeposit(l.deposit_amount_cents / 100);
+                                
+                                const nextDay = new Date(l.end_date + "T00:00:00");
+                                nextDay.setDate(nextDay.getDate() + 1);
+                                const year = nextDay.getFullYear();
+                                const month = String(nextDay.getMonth() + 1).padStart(2, "0");
+                                const day = String(nextDay.getDate()).padStart(2, "0");
+                                setLeaseStart(`${year}-${month}-${day}`);
+                                
+                                setShowLeaseModal(true);
+                              }}
+                              className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer shadow-md"
+                            >
+                              Renew Lease
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}

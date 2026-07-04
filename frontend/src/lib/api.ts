@@ -55,6 +55,8 @@ export const api = {
   getUnits: (propertyId: string) => request(`/properties/${propertyId}/units`),
   createUnit: (data: { property_id: string; unit_number: string; bed_count: number; bath_count: number; square_feet?: number; market_rent_cents: number }) => 
     request("/properties/units", { method: "POST", body: JSON.stringify(data) }),
+  updateUnit: (id: string, data: Partial<{ unit_number: string; bed_count: number; bath_count: number; square_feet?: number; market_rent_cents: number; status: string }>) => 
+    request(`/properties/units/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
 
   // Leases
   getLeases: () => request("/leases/"),

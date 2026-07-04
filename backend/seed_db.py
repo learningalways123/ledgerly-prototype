@@ -131,7 +131,25 @@ def seed():
             phone="512-555-0166",
             stripe_customer_id="cus_mock_bob"
         )
-        db.add_all([t1, t2])
+        t3 = models.TenantProfile(
+            id="tenant_charlie",
+            org_id="org_mock_123",
+            user_id="usr_mock_charlie",
+            first_name="Charlie",
+            last_name="Applicant",
+            email="charlie@example.com",
+            phone="512-555-0199"
+        )
+        t4 = models.TenantProfile(
+            id="tenant_dana",
+            org_id="org_mock_123",
+            user_id="usr_mock_dana",
+            first_name="Dana",
+            last_name="Scully",
+            email="scully@fbi.gov",
+            phone="202-555-0111"
+        )
+        db.add_all([t1, t2, t3, t4])
         db.commit()
 
         print("Seeding Leases (Agreements)...")
@@ -263,7 +281,25 @@ def seed():
             phone="512-555-9111",
             category="hvac"
         )
-        db.add_all([v1, v2])
+        v3 = models.Vendor(
+            id="vendor_3",
+            org_id="org_mock_123",
+            name="Apex Electricians",
+            contact_name="Bob",
+            email="bob@apexelectrical.local",
+            phone="512-555-9222",
+            category="electrical"
+        )
+        v4 = models.Vendor(
+            id="vendor_4",
+            org_id="org_mock_123",
+            name="Construct Group",
+            contact_name="Dan",
+            email="dan@constructgroup.local",
+            phone="512-555-9333",
+            category="structural"
+        )
+        db.add_all([v1, v2, v3, v4])
         db.commit()
 
         print("Seeding Maintenance Requests...")
