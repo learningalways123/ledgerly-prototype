@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.encoders import jsonable_encoder
 from sqlalchemy.orm import Session
 from typing import List
 from app.core.db import get_db
@@ -60,6 +61,6 @@ def get_assigned_work_orders(
             "description": t.description,
             "created_at": t.created_at,
             "address": f"{prop.name} - Unit {unit.unit_number}" if prop and unit else "N/A",
-            "comments": t.comments
+            "comments": jsonable_encoder(t.comments)
         })
     return output
