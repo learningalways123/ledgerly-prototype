@@ -19,7 +19,7 @@ def seed():
         print("Seeding default Organization...")
         org = models.Organization(
             id="org_mock_123",
-            name="Fenitech Property Management",
+            name="Acme Property Management",
             plan_tier="growth"
         )
         db.add(org)

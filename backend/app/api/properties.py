@@ -19,7 +19,7 @@ def create_property(
     # Ensure organization exists, create one if mock
     org = db.query(models.Organization).filter(models.Organization.id == current_user.org_id).first()
     if not org:
-        org = models.Organization(id=current_user.org_id, name="Default Mock Organization")
+        org = models.Organization(id=current_user.org_id, name="Acme Property Management")
         db.add(org)
         db.commit()
 
