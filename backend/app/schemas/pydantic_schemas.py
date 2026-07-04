@@ -139,6 +139,9 @@ class LeaseBase(BaseModel):
     late_fee_value_cents: int = 0
     grace_period_days: int = 5
     signed_lease_url: Optional[str] = None
+    tenant_consent_signed: bool = False
+    tenant_signature_name: Optional[str] = None
+    tenant_signed_at: Optional[datetime] = None
 
 class LeaseCreate(LeaseBase):
     tenant_ids: List[str]  # List of TenantProfile IDs
@@ -154,6 +157,9 @@ class LeaseUpdate(BaseModel):
     grace_period_days: Optional[int] = None
     signed_lease_url: Optional[str] = None
     tenant_ids: Optional[List[str]] = None
+    tenant_consent_signed: Optional[bool] = None
+    tenant_signature_name: Optional[str] = None
+    tenant_signed_at: Optional[datetime] = None
 
 class LeaseResponse(LeaseBase):
     id: str
@@ -163,6 +169,10 @@ class LeaseResponse(LeaseBase):
 
     class Config:
         from_attributes = True
+
+class LeaseSignRequest(BaseModel):
+    consent: bool
+    signature_name: str
 
 
 # Application Schemas (Phase 2)

@@ -54,7 +54,7 @@ export const api = {
   // Leases
   getLeases: () => request("/leases/"),
   getLease: (id: string) => request(`/leases/${id}`),
-  createLease: (data: { unit_id: string; start_date: string; end_date: string; rent_amount_cents: number; deposit_amount_cents: number; late_fee_type: string; late_fee_value_cents: number; grace_period_days: number; tenant_ids: string[] }) => 
+  createLease: (data: { unit_id: string; start_date: string; end_date: string; rent_amount_cents: number; deposit_amount_cents: number; late_fee_type?: string; late_fee_value_cents?: number; grace_period_days?: number; tenant_ids: string[]; status?: string }) => 
     request("/leases/", { method: "POST", body: JSON.stringify(data) }),
 
   // Payments
@@ -85,6 +85,10 @@ export const api = {
   updateApplicationStatus: (appId: string, data: { status: string }) =>
     request(`/screening/${appId}`, { method: "PATCH", body: JSON.stringify(data) }),
   sendAdverseAction: (appId: string) => request(`/screening/${appId}/send-adverse-action`, { method: "POST" }),
+
+  getTenantLease: () => request("/leases/tenant/my-lease"),
+  signLease: (leaseId: string, consent: boolean, signatureName: string) =>
+    request(`/leases/${leaseId}/sign`, { method: "POST", body: JSON.stringify({ consent, signature_name: signatureName }) }),
 
   // Accounting & Owner Ledgers (Phase 3)
   getOwners: () => request("/accounting/owners"),

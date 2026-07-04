@@ -13,6 +13,36 @@ export default function ApplicationsDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  // Lease Drafting Modal states
+  const [showLeaseModal, setShowLeaseModal] = useState(false);
+  const [leaseUnitId, setLeaseUnitId] = useState("");
+  const [leaseRent, setLeaseRent] = useState(1500);
+  const [leaseDeposit, setLeaseDeposit] = useState(1500);
+  const [leaseStart, setLeaseStart] = useState("");
+  const [leaseEnd, setLeaseEnd] = useState("");
+  const [leaseLength, setLeaseLength] = useState("12");
+  const [tenantName, setTenantName] = useState("");
+  const [tenantEmail, setTenantEmail] = useState("");
+  const [submittingLease, setSubmittingLease] = useState(false);
+
+  // Automatically calculate end date when start date or lease length changes
+  useEffect(() => {
+    if (leaseStart && leaseLength !== "custom") {
+      const start = new Date(leaseStart + "T00:00:00");
+      const months = parseInt(leaseLength, 10);
+      if (!isNaN(months)) {
+        const end = new Date(start);
+        end.setMonth(start.getMonth() + months);
+        end.setDate(end.getDate() - 1);
+        
+        const year = end.getFullYear();
+        const month = String(end.getMonth() + 1).padStart(2, "0");
+        const day = String(end.getDate()).padStart(2, "0");
+        setLeaseEnd(`${year}-${month}-${day}`);
+      }
+    }
+  }, [leaseStart, leaseLength]);
+
   const loadData = async () => {
     try {
       setLoading(true);
@@ -48,6 +78,51 @@ export default function ApplicationsDashboard() {
       alert("Application approved! Unit status transitioned to occupied.");
     } catch (err: any) {
       alert("Approval failed: " + err.message);
+    }
+  };
+
+  const handleApproveAndDraft = async (app: any) => {
+    try {
+      const updated = await api.updateApplicationStatus(app.id, { status: "approved" });
+      setApplications(applications.map(a => a.id === app.id ? updated : a));
+      
+      setLeaseUnitId(app.unit_id);
+      setTenantName(`${app.first_name} ${app.last_name}`);
+      setTenantEmail(app.email);
+      setLeaseRent(1500);
+      setLeaseDeposit(1500);
+      
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, "0");
+      const day = String(today.getDate()).padStart(2, "0");
+      setLeaseStart(`${year}-${month}-${day}`);
+      
+      setShowLeaseModal(true);
+    } catch (err: any) {
+      alert("Failed to approve application: " + err.message);
+    }
+  };
+
+  const handleCreateLease = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setSubmittingLease(true);
+      await api.createLease({
+        unit_id: leaseUnitId,
+        status: "draft",
+        start_date: new Date(leaseStart).toISOString().split("T")[0] as any,
+        end_date: new Date(leaseEnd).toISOString().split("T")[0] as any,
+        rent_amount_cents: leaseRent * 100,
+        deposit_amount_cents: leaseDeposit * 100,
+        tenant_ids: [tenantEmail]
+      });
+      alert("Lease drafted and sent to tenant successfully!");
+      setShowLeaseModal(false);
+    } catch (err: any) {
+      alert("Failed to draft lease: " + err.message);
+    } finally {
+      setSubmittingLease(false);
     }
   };
 
@@ -180,14 +255,14 @@ export default function ApplicationsDashboard() {
                   )}
 
                   {/* Actions */}
-                  {app.status === "screening_pending" && (
+                  {(app.status === "screening_pending" || app.status === "submitted") && (
                     <>
                       <button
-                        onClick={() => handleApprove(app.id)}
+                        onClick={() => handleApproveAndDraft(app)}
                         className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-4 py-2 rounded-xl text-xs transition-all flex items-center gap-1.5 cursor-pointer"
                       >
                         <UserCheck size={14} />
-                        Approve & Move In
+                        Approve & Draft Lease
                       </button>
                       <button
                         onClick={() => handleDeny(app.id)}
@@ -203,7 +278,101 @@ export default function ApplicationsDashboard() {
             ))}
           </div>
         )}
+      {/* Lease Drafting Modal */}
+      {showLeaseModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <form onSubmit={handleCreateLease} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl">
+            <h3 className="text-xl font-bold text-white">Draft Lease Agreement</h3>
+            
+            <div className="p-3 bg-indigo-950/20 border border-indigo-900/30 rounded-xl text-xs text-indigo-400">
+              Drafting lease for approved applicant <strong>{tenantName}</strong> ({tenantEmail}).
+            </div>
 
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-slate-400 font-medium">Rent Amount ($)</label>
+                  <input 
+                    type="number" 
+                    value={leaseRent} 
+                    onChange={e => setLeaseRent(Number(e.target.value))}
+                    min="0"
+                    required
+                    className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 font-medium">Deposit ($)</label>
+                  <input 
+                    type="number" 
+                    value={leaseDeposit} 
+                    onChange={e => setLeaseDeposit(Number(e.target.value))}
+                    min="0"
+                    required
+                    className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-slate-400 font-medium">Lease Length</label>
+                <select
+                  value={leaseLength}
+                  onChange={e => setLeaseLength(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
+                >
+                  <option value="6">6 Months</option>
+                  <option value="12">12 Months (1 Year)</option>
+                  <option value="18">18 Months</option>
+                  <option value="24">24 Months (2 Years)</option>
+                  <option value="custom">Custom Duration</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-slate-400 font-medium">Start Date</label>
+                  <input 
+                    type="date" 
+                    value={leaseStart} 
+                    onChange={e => setLeaseStart(e.target.value)}
+                    required
+                    className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-400 font-medium">End Date {leaseLength !== "custom" && "(Calculated)"}</label>
+                  <input 
+                    type="date" 
+                    value={leaseEnd} 
+                    onChange={e => setLeaseEnd(e.target.value)}
+                    required
+                    disabled={leaseLength !== "custom"}
+                    className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1 disabled:opacity-50 disabled:bg-slate-900/50"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowLeaseModal(false)}
+                className="flex-1 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 font-semibold py-2.5 rounded-xl text-sm transition-all cursor-pointer text-center"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submittingLease}
+                className="flex-1 bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 rounded-xl text-sm transition-all cursor-pointer text-center"
+              >
+                {submittingLease ? "Drafting..." : "Send Lease Offer"}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
       </div>
     </div>
   );

@@ -162,7 +162,26 @@ def get_property_units(
     if not db_property:
         raise HTTPException(status_code=404, detail="Property not found")
         
-    return db.query(models.Unit).filter(models.Unit.property_id == property_id).all()
+    units = db.query(models.Unit).filter(models.Unit.property_id == property_id).all()
+
+    # Dynamic status calculation based on active lease status and date ranges
+    from datetime import date
+    for u in units:
+        active_lease = db.query(models.Lease).filter(
+            models.Lease.unit_id == u.id,
+            models.Lease.status == "active",
+            models.Lease.start_date <= date.today(),
+            models.Lease.end_date >= date.today()
+        ).first()
+        
+        if active_lease:
+            u.status = "occupied"
+        elif u.status == "occupied":
+            # Reset to vacant if active lease expired or was terminated
+            u.status = "vacant"
+            
+    db.commit()
+    return units
 
 @router.patch("/units/{unit_id}", response_model=UnitResponse)
 def update_unit(

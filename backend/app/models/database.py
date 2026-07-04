@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Column as DbColumn, Integer, ForeignKey, Date, DateTime, Table, Numeric, Text
+from sqlalchemy import Column, String, Column as DbColumn, Integer, ForeignKey, Date, DateTime, Table, Numeric, Text, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.db import Base
@@ -110,6 +110,9 @@ class Lease(Base):
     grace_period_days = Column(Integer, default=5)
     signed_lease_url = Column(String(512), nullable=True)
     stripe_subscription_id = Column(String(255), nullable=True)
+    tenant_consent_signed = Column(Boolean, default=False)
+    tenant_signature_name = Column(String(255), nullable=True)
+    tenant_signed_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
