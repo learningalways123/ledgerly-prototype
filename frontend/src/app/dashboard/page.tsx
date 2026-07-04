@@ -64,6 +64,7 @@ export default function LandlordDashboard() {
   const [leaseDeposit, setLeaseDeposit] = useState(1500);
   const [leaseStart, setLeaseStart] = useState("");
   const [leaseEnd, setLeaseEnd] = useState("");
+  const [leaseLength, setLeaseLength] = useState("12");
   const [tenantName, setTenantName] = useState("");
   const [tenantEmail, setTenantEmail] = useState("");
   const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
@@ -113,6 +114,25 @@ export default function LandlordDashboard() {
       setUnits([]);
     }
   }, [selectedPropertyId]);
+
+  // Automatically calculate end date when start date or lease length changes
+  useEffect(() => {
+    if (leaseStart && leaseLength !== "custom") {
+      const start = new Date(leaseStart + "T00:00:00");
+      const months = parseInt(leaseLength, 10);
+      if (!isNaN(months)) {
+        const end = new Date(start);
+        end.setMonth(start.getMonth() + months);
+        end.setDate(end.getDate() - 1); // Subtract 1 day for standard lease end (e.g. July 1st to June 30th)
+        
+        // Format to YYYY-MM-DD
+        const year = end.getFullYear();
+        const month = String(end.getMonth() + 1).padStart(2, "0");
+        const day = String(end.getDate()).padStart(2, "0");
+        setLeaseEnd(`${year}-${month}-${day}`);
+      }
+    }
+  }, [leaseStart, leaseLength]);
 
   // Form Submissions
   const handleCreateProperty = async (e: React.FormEvent) => {
@@ -722,18 +742,23 @@ export default function LandlordDashboard() {
                 <label className="text-xs text-slate-400 font-medium">Select Unit</label>
                 <select
                   value={leaseUnitId}
-                  onChange={e => setLeaseUnitId(e.target.value)}
+                  onChange={e => {
+                    const uId = e.target.value;
+                    setLeaseUnitId(uId);
+                    const matchedUnit = units.find(u => u.id === uId);
+                    if (matchedUnit) {
+                      setLeaseRent(matchedUnit.market_rent_cents / 100);
+                      setLeaseDeposit(matchedUnit.market_rent_cents / 100);
+                    }
+                  }}
                   required
                   className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
                 >
                   <option value="">Choose unit...</option>
-                  {properties.map(p => (
-                    <optgroup key={p.id} label={p.name}>
-                      {/* Note: In a complete implementation we might preload all units in the dropdown */}
-                      {units.map(u => (
-                        <option key={u.id} value={u.id}>Unit {u.unit_number} - ${u.market_rent_cents/100}/mo</option>
-                      ))}
-                    </optgroup>
+                  {units.map(u => (
+                    <option key={u.id} value={u.id}>
+                      Unit {u.unit_number} ({u.status}) - ${u.market_rent_cents/100}/mo
+                    </option>
                   ))}
                 </select>
               </div>
@@ -761,6 +786,20 @@ export default function LandlordDashboard() {
                   />
                 </div>
               </div>
+              <div>
+                <label className="text-xs text-slate-400 font-medium">Lease Length</label>
+                <select
+                  value={leaseLength}
+                  onChange={e => setLeaseLength(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
+                >
+                  <option value="6">6 Months</option>
+                  <option value="12">12 Months (1 Year)</option>
+                  <option value="18">18 Months</option>
+                  <option value="24">24 Months (2 Years)</option>
+                  <option value="custom">Custom Duration</option>
+                </select>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs text-slate-400 font-medium">Start Date</label>
@@ -773,13 +812,14 @@ export default function LandlordDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-slate-400 font-medium">End Date</label>
+                  <label className="text-xs text-slate-400 font-medium">End Date {leaseLength !== "custom" && "(Calculated)"}</label>
                   <input 
                     type="date" 
                     value={leaseEnd} 
                     onChange={e => setLeaseEnd(e.target.value)}
                     required
-                    className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
+                    disabled={leaseLength !== "custom"}
+                    className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1 disabled:opacity-50 disabled:bg-slate-900/50"
                   />
                 </div>
               </div>

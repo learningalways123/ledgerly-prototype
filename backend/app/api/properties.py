@@ -148,7 +148,7 @@ def get_unit(
         raise HTTPException(status_code=404, detail="Unit not found")
     return db_unit
 
-@router.get("/properties/{property_id}/units", response_model=List[UnitResponse])
+@router.get("/{property_id}/units", response_model=List[UnitResponse])
 def get_property_units(
     property_id: str,
     current_user: UserSession = Depends(get_current_user),
