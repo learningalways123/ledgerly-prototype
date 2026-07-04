@@ -250,7 +250,7 @@ def seed():
             org_id="org_mock_123",
             name="Austin Plumbing Crew",
             contact_name="Mario",
-            email="mario@austinplumbing.local",
+            email="mario@austinplumbing.com",
             phone="512-555-9000",
             category="plumbing"
         )
@@ -259,7 +259,7 @@ def seed():
             org_id="org_mock_123",
             name="Air Care HVAC Experts",
             contact_name="Sarah",
-            email="sarah@aircare.local",
+            email="sarah@aircare.com",
             phone="512-555-9111",
             category="hvac"
         )

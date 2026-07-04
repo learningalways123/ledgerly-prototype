@@ -110,7 +110,7 @@ export default function VendorPortal() {
                   type="email" 
                   value={vendorEmail}
                   onChange={e => setVendorEmail(e.target.value)}
-                  placeholder="dispatch@apexplumbing.local" 
+                  placeholder="dispatch@apexplumbing.com" 
                   required
                   className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500 mt-1"
                 />
