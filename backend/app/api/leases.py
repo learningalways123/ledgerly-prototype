@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import List
+import uuid
 from app.core.db import get_db
 from app.core.security import get_current_user
 from app.schemas.pydantic_schemas import UserSession, LeaseCreate, LeaseResponse, LeaseUpdate, LeaseSignRequest
@@ -151,25 +152,32 @@ def delete_lease(
 
 @router.get("/tenant/my-lease", response_model=LeaseResponse)
 def get_tenant_lease(
+    request: Request,
     current_user: UserSession = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Find tenant profile associated with user_id
-    tenant_profile = db.query(models.TenantProfile).filter(
-        models.TenantProfile.user_id == current_user.user_id
-    ).first()
-    if not tenant_profile:
-        # Fallback: check by email if user_id matching is not populated
+    x_mock_email = request.headers.get("x-mock-user-email")
+    tenant_profile = None
+    if x_mock_email:
         tenant_profile = db.query(models.TenantProfile).filter(
-            models.TenantProfile.email == "sarah@aircare.com"  # default mock tenant
+            models.TenantProfile.email == x_mock_email
+        ).first()
+
+    if not tenant_profile:
+        tenant_profile = db.query(models.TenantProfile).filter(
+            models.TenantProfile.user_id == current_user.user_id
+        ).first()
+
+    if not tenant_profile:
+        tenant_profile = db.query(models.TenantProfile).filter(
+            models.TenantProfile.email == "sarah@aircare.com"
         ).first()
 
     if not tenant_profile:
         raise HTTPException(status_code=404, detail="Tenant profile not found in system")
         
-    # Find active or draft lease linked to this tenant profile
-    lease = db.query(models.Lease).join(models.Lease.tenants).filter(
-        models.TenantProfile.id == tenant_profile.id
+    lease = db.query(models.Lease).filter(
+        models.Lease.tenants.any(id=tenant_profile.id)
     ).order_by(models.Lease.created_at.desc()).first()
     
     if not lease:
@@ -180,15 +188,24 @@ def get_tenant_lease(
 def sign_lease(
     lease_id: str,
     sign_in: LeaseSignRequest,
+    request: Request,
     current_user: UserSession = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     from datetime import datetime
     
-    # Find tenant profile
-    tenant_profile = db.query(models.TenantProfile).filter(
-        models.TenantProfile.user_id == current_user.user_id
-    ).first()
+    x_mock_email = request.headers.get("x-mock-user-email")
+    tenant_profile = None
+    if x_mock_email:
+        tenant_profile = db.query(models.TenantProfile).filter(
+            models.TenantProfile.email == x_mock_email
+        ).first()
+
+    if not tenant_profile:
+        tenant_profile = db.query(models.TenantProfile).filter(
+            models.TenantProfile.user_id == current_user.user_id
+        ).first()
+
     if not tenant_profile:
         tenant_profile = db.query(models.TenantProfile).filter(
             models.TenantProfile.email == "sarah@aircare.com"
@@ -197,10 +214,9 @@ def sign_lease(
     if not tenant_profile:
         raise HTTPException(status_code=404, detail="Tenant profile not found in system")
         
-    # Find lease
-    lease = db.query(models.Lease).join(models.Lease.tenants).filter(
+    lease = db.query(models.Lease).filter(
         models.Lease.id == lease_id,
-        models.TenantProfile.id == tenant_profile.id
+        models.Lease.tenants.any(id=tenant_profile.id)
     ).first()
     if not lease:
         raise HTTPException(status_code=404, detail="Lease agreement not found or unauthorized")

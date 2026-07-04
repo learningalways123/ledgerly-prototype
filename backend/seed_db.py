@@ -115,9 +115,9 @@ def seed():
             id="tenant_1",
             org_id="org_mock_123",
             user_id="usr_mock_tenant_456",
-            first_name="Alice",
-            last_name="Smith",
-            email="alice@example.com",
+            first_name="Sarah",
+            last_name="Conner",
+            email="sarah@aircare.com",
             phone="512-555-0144",
             stripe_customer_id="cus_mock_alice"
         )

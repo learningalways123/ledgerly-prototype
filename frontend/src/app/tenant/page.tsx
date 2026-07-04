@@ -33,6 +33,7 @@ export default function TenantPortal() {
 
   const [googleAuthenticated, setGoogleAuthenticated] = useState(false);
   const [googleUserEmail, setGoogleUserEmail] = useState("");
+  const [googleUserEmailInput, setGoogleUserEmailInput] = useState("sarah@aircare.com");
 
   // Lease e-signature states
   const [signingStep, setSigningStep] = useState(1);
@@ -100,7 +101,9 @@ export default function TenantPortal() {
     const isAuth = localStorage.getItem("google_authenticated") === "true";
     setGoogleAuthenticated(isAuth);
     if (isAuth) {
-      setGoogleUserEmail("sarah@aircare.com");
+      const savedEmail = localStorage.getItem("google_user_email") || "sarah@aircare.com";
+      setGoogleUserEmail(savedEmail);
+      setGoogleUserEmailInput(savedEmail);
       loadData();
     } else {
       setLoading(false);
@@ -149,15 +152,18 @@ export default function TenantPortal() {
   };
 
   const handleGoogleSignIn = () => {
+    const email = googleUserEmailInput || "sarah@aircare.com";
     localStorage.setItem("google_authenticated", "true");
+    localStorage.setItem("google_user_email", email);
     localStorage.setItem("demo_role", "tenant");
     setGoogleAuthenticated(true);
-    setGoogleUserEmail("sarah@aircare.com");
+    setGoogleUserEmail(email);
     loadData();
   };
 
   const handleGoogleSignOut = () => {
     localStorage.removeItem("google_authenticated");
+    localStorage.removeItem("google_user_email");
     setGoogleAuthenticated(false);
     setGoogleUserEmail("");
     setLeases([]);
@@ -312,6 +318,33 @@ export default function TenantPortal() {
           <p className="text-slate-400 text-sm leading-relaxed">
             Create an account, submit rental applications, digitally sign lease contracts, and pay rent online using Ledgerly.
           </p>
+
+          <div className="space-y-3 pt-2 text-left bg-slate-950/40 p-4 border border-slate-850 rounded-2xl">
+            <label className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Mock Authentication Identity</label>
+            <input
+              type="email"
+              value={googleUserEmailInput}
+              onChange={e => setGoogleUserEmailInput(e.target.value)}
+              placeholder="sarah@aircare.com"
+              className="w-full bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+            />
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setGoogleUserEmailInput("sarah@aircare.com")}
+                className="text-[9px] bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 px-2 py-1 rounded cursor-pointer transition-all"
+              >
+                sarah@aircare.com
+              </button>
+              <button
+                type="button"
+                onClick={() => setGoogleUserEmailInput("charlie@example.com")}
+                className="text-[9px] bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 px-2 py-1 rounded cursor-pointer transition-all"
+              >
+                charlie@example.com
+              </button>
+            </div>
+          </div>
 
           <button
             type="button"

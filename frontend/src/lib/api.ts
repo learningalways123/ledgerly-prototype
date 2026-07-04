@@ -15,11 +15,16 @@ export function getAuthToken(): string {
 }
 
 async function request(endpoint: string, options: RequestInit = {}) {
-  const headers = {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${getAuthToken()}`,
-    ...(options.headers || {}),
-  };
+  const headers = new Headers(options.headers || {});
+  headers.set("Content-Type", "application/json");
+  headers.set("Authorization", `Bearer ${getAuthToken()}`);
+
+  if (typeof window !== "undefined") {
+    const mockEmail = localStorage.getItem("google_user_email");
+    if (mockEmail) {
+      headers.set("X-Mock-User-Email", mockEmail);
+    }
+  }
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
