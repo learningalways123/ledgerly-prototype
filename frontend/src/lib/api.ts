@@ -70,6 +70,12 @@ export const api = {
     request("/maintenance/", { method: "POST", body: JSON.stringify(data) }),
   updateMaintenanceStatus: (id: string, data: { status: string; vendor_id?: string }) => 
     request(`/maintenance/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  updateMaintenanceRequest: (id: string, data: { description: string; priority: string }) => 
+    request(`/maintenance/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+  deleteMaintenanceRequest: (id: string) => 
+    request(`/maintenance/${id}`, { method: "DELETE" }),
+  createMaintenanceComment: (requestId: string, text: string) => 
+    request(`/maintenance/${requestId}/comments`, { method: "POST", body: JSON.stringify({ text }) }),
 
   // Tenant Screening & Vacancies (Phase 2)
   getApplications: () => request("/screening/"),

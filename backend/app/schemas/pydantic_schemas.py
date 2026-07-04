@@ -243,6 +243,25 @@ class VendorResponse(VendorBase):
         from_attributes = True
 
 
+# MaintenanceComment Schemas
+class MaintenanceCommentBase(BaseModel):
+    text: str
+
+class MaintenanceCommentCreate(MaintenanceCommentBase):
+    pass
+
+class MaintenanceCommentResponse(MaintenanceCommentBase):
+    id: str
+    org_id: str
+    maintenance_request_id: str
+    author_role: str
+    author_name: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # MaintenanceRequest Schemas
 class MaintenanceRequestBase(BaseModel):
     unit_id: str
@@ -271,6 +290,7 @@ class MaintenanceRequestResponse(MaintenanceRequestBase):
     updated_at: datetime
     tenant: TenantProfileResponse
     vendor: Optional[VendorResponse] = None
+    comments: List[MaintenanceCommentResponse] = []
 
     class Config:
         from_attributes = True

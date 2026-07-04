@@ -221,6 +221,22 @@ class MaintenanceRequest(Base):
     unit = relationship("Unit", back_populates="maintenance_requests")
     tenant = relationship("TenantProfile", back_populates="maintenance_requests")
     vendor = relationship("Vendor", back_populates="maintenance_requests")
+    comments = relationship("MaintenanceComment", back_populates="maintenance_request", cascade="all, delete-orphan")
+
+
+class MaintenanceComment(Base):
+    __tablename__ = "maintenance_comments"
+
+    id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    org_id = Column(String(36), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    maintenance_request_id = Column(String(36), ForeignKey("maintenance_requests.id", ondelete="CASCADE"), nullable=False, index=True)
+    author_role = Column(String(50), nullable=False)  # 'tenant', 'landlord', 'vendor'
+    author_name = Column(String(255), nullable=False)
+    text = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    maintenance_request = relationship("MaintenanceRequest", back_populates="comments")
 
 
 class TrustLedgerEntry(Base):

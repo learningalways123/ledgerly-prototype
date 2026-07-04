@@ -292,6 +292,26 @@ def seed():
         db.add_all([req1, req2])
         db.commit()
 
+        print("Seeding Maintenance Comments...")
+        c1 = models.MaintenanceComment(
+            id="comment_1",
+            org_id="org_mock_123",
+            maintenance_request_id="req_1",
+            author_role="tenant",
+            author_name="Alice Smith",
+            text="Leaking has increased. I've placed a bucket underneath, but it's filling up slowly."
+        )
+        c2 = models.MaintenanceComment(
+            id="comment_2",
+            org_id="org_mock_123",
+            maintenance_request_id="req_1",
+            author_role="vendor",
+            author_name="Austin Plumbing Crew",
+            text="Got the dispatch. We have a technician Mario scheduled for tomorrow morning between 9 AM and 12 PM."
+        )
+        db.add_all([c1, c2])
+        db.commit()
+
         print("Seeding Trust Ledger Accounts...")
         e1 = models.TrustLedgerEntry(
             id="trust_1",

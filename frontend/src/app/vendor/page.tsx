@@ -15,6 +15,9 @@ export default function VendorPortal() {
   const [vendorCategory, setVendorCategory] = useState("plumbing");
   const [registered, setRegistered] = useState(false);
   const [registering, setRegistering] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [commentText, setCommentText] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   const loadData = async () => {
     try {
@@ -65,6 +68,31 @@ export default function VendorPortal() {
       alert("Work order status updated successfully.");
     } catch (err: any) {
       alert("Failed to update status: " + err.message);
+    }
+  };
+
+  const handleOpenTicket = (ticket: any) => {
+    setSelectedTicket(ticket);
+    setCommentText("");
+  };
+
+  const handleAddComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedTicket || !commentText.trim()) return;
+    try {
+      setSubmittingComment(true);
+      const newComment = await api.createMaintenanceComment(selectedTicket.id, commentText);
+      const updatedTicket = {
+        ...selectedTicket,
+        comments: [...(selectedTicket.comments || []), newComment]
+      };
+      setSelectedTicket(updatedTicket);
+      setWorkOrders(workOrders.map(o => o.id === selectedTicket.id ? { ...o, comments: updatedTicket.comments } : o));
+      setCommentText("");
+    } catch (err: any) {
+      alert("Failed to add comment: " + err.message);
+    } finally {
+      setSubmittingComment(false);
     }
   };
 
@@ -157,7 +185,11 @@ export default function VendorPortal() {
                 ) : (
                   <div className="space-y-4">
                     {workOrders.map(order => (
-                      <div key={order.id} className="bg-slate-900 border border-slate-855 p-5 rounded-xl space-y-4">
+                      <div 
+                        key={order.id} 
+                        onClick={() => handleOpenTicket(order)}
+                        className="bg-slate-900 border border-slate-855 p-5 rounded-xl space-y-4 hover:border-indigo-500/50 cursor-pointer transition-all hover:bg-slate-900/60"
+                      >
                         <div className="flex justify-between items-start">
                           <div>
                             <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Property Location</span>
@@ -177,13 +209,19 @@ export default function VendorPortal() {
                         </p>
 
                         <div className="flex items-center justify-between text-xs text-slate-400 border-t border-slate-855 pt-3">
-                          <span>Dispatched: {new Date(order.created_at).toLocaleDateString()}</span>
+                          <div className="flex flex-col gap-0.5">
+                            <span>Dispatched: {new Date(order.created_at).toLocaleDateString()}</span>
+                            {order.comments && order.comments.length > 0 && (
+                              <span className="text-indigo-400 font-semibold text-[10px]">{order.comments.length} comment{order.comments.length > 1 ? 's' : ''}</span>
+                            )}
+                          </div>
                           
                           {order.status !== "resolved" && (
                             <div className="flex gap-2">
                               {order.status === "submitted" && (
                                 <button
-                                  onClick={() => handleUpdateStatus(order.id, "in_progress")}
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleUpdateStatus(order.id, "in_progress"); }}
                                   className="bg-indigo-950 hover:bg-indigo-900 text-indigo-400 border border-indigo-900/30 font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
                                 >
                                   Accept Dispatch
@@ -191,7 +229,8 @@ export default function VendorPortal() {
                               )}
                               {order.status === "in_progress" && (
                                 <button
-                                  onClick={() => handleUpdateStatus(order.id, "resolved")}
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); handleUpdateStatus(order.id, "resolved"); }}
                                   className="bg-emerald-950 hover:bg-emerald-900 text-emerald-400 border border-emerald-900/30 font-semibold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
                                 >
                                   Log Work Resolved
@@ -225,6 +264,106 @@ export default function VendorPortal() {
 
           </div>
         )}
+      {/* Maintenance Request Detail & Comments Modal */}
+      {selectedTicket && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div className="p-5 border-b border-slate-850 flex justify-between items-center bg-indigo-950/20">
+              <div>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-indigo-400 bg-indigo-950 px-2.5 py-1 rounded-full">
+                  {selectedTicket.priority} priority
+                </span>
+                <h3 className="text-lg font-extrabold text-white mt-2 capitalize">{selectedTicket.category} Issue</h3>
+              </div>
+              <button 
+                type="button"
+                onClick={() => setSelectedTicket(null)}
+                className="text-slate-400 hover:text-white transition-all text-sm font-medium cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+
+            {/* Content Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              
+              {/* Description View */}
+              <div className="space-y-3">
+                <div className="bg-slate-950 p-4 rounded-xl border border-slate-855">
+                  <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-wrap">{selectedTicket.description}</p>
+                </div>
+                <div className="text-[10px] text-slate-500 flex flex-wrap gap-x-4 gap-y-1">
+                  <span>Submitted: {new Date(selectedTicket.created_at).toLocaleString()}</span>
+                  {selectedTicket.updated_at !== selectedTicket.created_at && (
+                    <span className="text-indigo-400 font-medium">
+                      Edited: {new Date(selectedTicket.updated_at).toLocaleString()}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Status Section */}
+              <div className="flex items-center justify-between text-xs bg-slate-950/20 p-3.5 border border-slate-850 rounded-xl">
+                <span className="text-slate-400">Current Status:</span>
+                <span className="font-bold text-white capitalize bg-slate-950 border border-slate-800 px-3 py-1 rounded-full">
+                  {selectedTicket.status}
+                </span>
+              </div>
+
+              {/* Comments Section */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">Discussion Comments</h4>
+                
+                {/* Comments List */}
+                <div className="space-y-3">
+                  {!selectedTicket.comments || selectedTicket.comments.length === 0 ? (
+                    <p className="text-slate-500 text-xs italic py-2">No comments added yet. Start the conversation below.</p>
+                  ) : (
+                    selectedTicket.comments.map((c: any) => (
+                      <div key={c.id} className="bg-slate-950 border border-slate-855 p-3.5 rounded-xl space-y-1.5">
+                        <div className="flex items-center justify-between text-[10px]">
+                          <span className="font-semibold text-white">
+                            {c.author_name} 
+                            <span className="text-slate-500 font-normal ml-1.5 uppercase px-1.5 py-0.5 rounded bg-slate-900 border border-slate-850">
+                              {c.author_role}
+                            </span>
+                          </span>
+                          <span className="text-slate-500">
+                            {new Date(c.created_at).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-slate-300 text-xs leading-relaxed whitespace-pre-wrap">{c.text}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Comment Form */}
+                <form onSubmit={handleAddComment} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={commentText}
+                    onChange={e => setCommentText(e.target.value)}
+                    placeholder="Type a response or question..."
+                    disabled={submittingComment}
+                    required
+                    className="flex-1 bg-slate-950 border border-slate-855 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={submittingComment}
+                    className="bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-800 text-white font-semibold px-4 rounded-xl text-xs cursor-pointer shadow-md flex items-center justify-center font-bold"
+                  >
+                    Send
+                  </button>
+                </form>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>

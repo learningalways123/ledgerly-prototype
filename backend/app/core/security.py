@@ -37,6 +37,12 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Security(securi
             org_id="org_mock_123",
             roles=["tenant"]
         )
+    elif token == "mock-vendor":
+        return UserSession(
+            user_id="usr_mock_vendor_789",
+            org_id="org_mock_123",
+            roles=["vendor"]
+        )
 
     # JWT validation with Clerk
     if not settings.CLERK_JWT_VERIFICATION_KEY:

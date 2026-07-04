@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from app.core.db import get_db
 from app.core.security import get_current_user
-from app.schemas.pydantic_schemas import UserSession, MaintenanceRequestCreate, MaintenanceRequestResponse, MaintenanceRequestUpdate
+from app.schemas.pydantic_schemas import UserSession, MaintenanceRequestCreate, MaintenanceRequestResponse, MaintenanceRequestUpdate, MaintenanceCommentCreate, MaintenanceCommentResponse
 from app.models import database as models
 
 router = APIRouter()
@@ -147,3 +147,54 @@ def delete_maintenance_request(
     db.delete(db_request)
     db.commit()
     return None
+
+
+@router.post("/{request_id}/comments", response_model=MaintenanceCommentResponse, status_code=status.HTTP_201_CREATED)
+def create_maintenance_comment(
+    request_id: str,
+    comment_in: MaintenanceCommentCreate,
+    current_user: UserSession = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    # Verify the maintenance request exists
+    db_request = db.query(models.MaintenanceRequest).filter(
+        models.MaintenanceRequest.id == request_id,
+        models.MaintenanceRequest.org_id == current_user.org_id
+    ).first()
+    if not db_request:
+        raise HTTPException(status_code=404, detail="Maintenance request not found")
+
+    # Determine author role and name
+    author_role = "landlord"
+    author_name = "Acme Property Manager"
+
+    if "tenant" in current_user.roles:
+        author_role = "tenant"
+        tenant = db.query(models.TenantProfile).filter(
+            models.TenantProfile.user_id == current_user.user_id
+        ).first()
+        if tenant:
+            author_name = f"{tenant.first_name} {tenant.last_name}"
+        else:
+            author_name = "Tenant User"
+    elif "vendor" in current_user.roles:
+        author_role = "vendor"
+        vendor = db.query(models.Vendor).filter(
+            models.Vendor.org_id == current_user.org_id
+        ).first()
+        if vendor:
+            author_name = vendor.name
+        else:
+            author_name = "Dispatched Contractor"
+
+    db_comment = models.MaintenanceComment(
+        org_id=current_user.org_id,
+        maintenance_request_id=request_id,
+        author_role=author_role,
+        author_name=author_name,
+        text=comment_in.text
+    )
+    db.add(db_comment)
+    db.commit()
+    db.refresh(db_comment)
+    return db_comment

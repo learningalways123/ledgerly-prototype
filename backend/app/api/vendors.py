@@ -59,6 +59,7 @@ def get_assigned_work_orders(
             "status": t.status,
             "description": t.description,
             "created_at": t.created_at,
-            "address": f"{prop.name} - Unit {unit.unit_number}" if prop and unit else "N/A"
+            "address": f"{prop.name} - Unit {unit.unit_number}" if prop and unit else "N/A",
+            "comments": t.comments
         })
     return output
