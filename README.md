@@ -50,7 +50,7 @@ Double-click `run_demo.bat` or run:
 ```cmd
 run_demo.bat
 ```
-*This starts the backend on [http://localhost:8000](http://localhost:8000) (API Docs at `/docs`) and the Next.js app on [http://localhost:3000](http://localhost:3000).*
+*This starts the backend on [http://localhost:8001](http://localhost:8001) (API Docs at `/docs`) and the Next.js app on [http://localhost:3000](http://localhost:3000).*
 
 ### Stop the App
 Double-click `stop_demo.bat` or run:
@@ -65,22 +65,32 @@ stop_demo.bat
 
 Ledgerly provides a **Demo Role Switcher** banner at the top of the interface to cycle between portals instantly:
 
-1. **Apply for a Vacancy**: 
-   - Switch to **Tenant** and click the navigation to apply or go to `/apply`.
-   - Submit a tenancy application. This registers compliance consent under the Fair Credit Reporting Act (FCRA).
-2. **Pull Credit Reports**:
-   - Switch to **Landlord** and navigate to **Applications Inbox**.
-   - Select the applicant and click **Request SmartMove Screening**.
-   - View simulated credit scores, background logs, and click **Approve & Move In** to transition the unit to occupied.
-3. **Connect Bank & Pay Rent**:
-   - Switch to **Tenant**. You will see the active monthly lease.
+1. **Sign In & Apply for a Vacancy**: 
+   - Switch to **Tenant** (`/tenant`) and click **Sign in with Google**.
+   - Browse vacant units, select one, and click **Apply Now**.
+   - Submit the rental application. This registers compliance consent under the Fair Credit Reporting Act (FCRA).
+2. **Review & Approve Application**:
+   - Switch to **Landlord** and navigate to **Applications Inbox** (`/dashboard/applications`).
+   - Click **Request SmartMove Screening** to simulate retrieving background logs and credit scores.
+   - Click **Approve & Draft Lease**. This approves the application and opens the Lease Drafting Modal.
+   - Pre-populate lease details, select a lease length preset (6, 12, 18, or 24 months to auto-calculate the end date), and click **Send Lease Offer**.
+3. **Digitally Sign Lease Contract**:
+   - Switch to **Tenant** (`/tenant`). A pending lease offer prompt will appear.
+   - Complete the 3-step electronic signature flow:
+     1. Review terms (Rent, deposit, start/end dates).
+     2. Electronic records consent.
+     3. Type signature name to execute.
+   - Once signed, the lease status changes to `active` and the property unit status automatically transitions to `occupied` in the landlord dashboard.
+   - View or download a digital contract copy containing signature timestamps.
+4. **Connect Bank & Pay Rent**:
+   - Switch to **Tenant** on the dashboard.
    - Click **Link Bank Account** to simulate Plaid Link verification.
    - Click **Pay Rent** to initiate a Stripe ACH debit transfer.
-4. **Dispatched Repairs**:
+5. **Dispatched Repairs & Comments**:
    - Switch to **Tenant** and submit a maintenance request (e.g., *"Kitchen sink is leaking water"*).
-   - Switch to **Landlord**. The request will show in your inbox. Under the hood, Ledgerly's AI service triage has auto-classified the category (*plumbing*), priority (*emergency*), and generated a summary using **Gemini 2.5 Flash**.
-   - Switch to **Vendor**, register your business, accept the dispatched work-order, and mark it resolved.
-5. **Ledger Accounting & QuickBooks**:
+   - Open the request to review discussion logs or add comments. Tenants can edit/delete their own requests.
+   - Switch to **Landlord** or **Vendor**. Read the Gemini-triaged request details and comment to discuss.
+6. **Ledger Accounting & QuickBooks**:
    - Switch to **Landlord** and navigate to **Trust Accounting Ledger**.
    - Check the audit-ready ledger logs. Click **Pay Owner Client** to initiate Stripe ConnectExpress payouts.
    - Click **Sync QuickBooks** to simulate exporting the journal ledgers to QuickBooks Online.
