@@ -1,6 +1,6 @@
 const BASE_URL = typeof window !== "undefined" 
-  ? (window.location.origin.includes("localhost") ? "http://localhost:8000/api/v1" : window.location.origin + "/api/v1")
-  : "http://localhost:8000/api/v1";
+  ? (window.location.origin.includes("localhost") ? "http://localhost:8001/api/v1" : window.location.origin + "/api/v1")
+  : "http://localhost:8001/api/v1";
 
 export type Role = "landlord" | "tenant" | "vendor";
 

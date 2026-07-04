@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # Database
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/ledgerly")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./ledgerly.db")
     
     # Clerk Auth
     CLERK_API_URL: str = "https://api.clerk.com/v1"
