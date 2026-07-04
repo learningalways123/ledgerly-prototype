@@ -237,7 +237,7 @@ class PaymentResponse(PaymentBase):
 class VendorBase(BaseModel):
     name: str
     contact_name: Optional[str] = None
-    email: EmailStr
+    email: str
     phone: Optional[str] = None
     category: str
 

@@ -1,7 +1,8 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from app.api.dependencies import get_db, get_current_user
+from app.core.db import get_db
+from app.core.security import get_current_user
 from app.models import database as models
 from app.schemas.pydantic_schemas import TenantProfileResponse, TenantProfileCreate, UserSession
 
